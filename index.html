@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Raenotes - Note & Markdown Editor Multi-Device</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome per icone moderne -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked JS per il parsing Markdown in HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Personalizzazione scrollbar per PC e mobile */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.4);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.7);
+        }
+
+        /* Stili Anteprima Markdown renderizzata */
+        .markdown-preview {
+            line-height: 1.7;
+        }
+        .markdown-preview h1 { font-size: 1.875rem; font-weight: 800; margin-top: 1.25rem; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(156, 163, 175, 0.3); padding-bottom: 0.4rem; }
+        .markdown-preview h2 { font-size: 1.5rem; font-weight: 700; margin-top: 1rem; margin-bottom: 0.5rem; border-bottom: 1px solid rgba(156, 163, 175, 0.2); padding-bottom: 0.2rem; }
+        .markdown-preview h3 { font-size: 1.25rem; font-weight: 600; margin-top: 0.85rem; margin-bottom: 0.4rem; }
+        .markdown-preview p { margin-bottom: 0.85rem; color: inherit; }
+        .markdown-preview ul { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.85rem; }
+        .markdown-preview ol { list-style-type: decimal; padding-left: 1.25rem; margin-bottom: 0.85rem; }
+        .markdown-preview blockquote { border-left: 4px solid #3b82f6; padding-left: 0.85rem; margin: 0.85rem 0; font-style: italic; opacity: 0.9; }
+        .markdown-preview code { font-family: monospace; background-color: rgba(156, 163, 175, 0.2); padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-size: 0.875em; }
+        .markdown-preview pre { background-color: #1e293b; color: #f8fafc; padding: 0.85rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.85rem; }
+        .markdown-preview pre code { background-color: transparent; padding: 0; color: inherit; }
+        .markdown-preview table { width: 100%; border-collapse: collapse; margin-bottom: 0.85rem; }
+        .markdown-preview th, .markdown-preview td { border: 1px solid rgba(156, 163, 175, 0.3); padding: 0.4rem 0.6rem; text-align: left; }
+        .markdown-preview th { background-color: rgba(156, 163, 175, 0.15); font-weight: 600; }
+        .markdown-preview img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 0.85rem 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .markdown-preview a { color: #3b82f6; text-decoration: underline; }
+
+        /* Supporto Touch Target Mobile */
+        .touch-target {
+            min-height: 44px;
+            min-width: 44px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans h-full flex flex-col overflow-hidden transition-colors duration-200">
+
+    <!-- AVVISO FALLBACK COMPATIBILITÀ MOBILE / BROWSER -->
+    <div id="compatiblityWarning" class="hidden bg-amber-500 text-white px-3 py-1.5 text-xs text-center font-medium flex justify-between items-center z-50 shrink-0">
+        <span><i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Nota: Su questo browser o dispositivo l'accesso alla cartella locale funziona in modalità archivio in memoria o richiede esportazione.</span>
+        <button onclick="document.getElementById('compatiblityWarning').remove()" class="text-white hover:text-gray-200 font-bold ml-2 p-1">&times;</button>
+    </div>
+
+    <!-- BARRA SUPERIORE APPLICAZIONE -->
+    <header class="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-3 sm:px-4 flex items-center justify-between shrink-0 select-none z-20">
+        <div class="flex items-center gap-2">
+            <!-- Pulsante menu mobile per mostrare/nascondere quaderni su smartphone -->
+            <button onclick="toggleSidebarMobile()" class="md:hidden p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 touch-target flex items-center justify-center">
+                <i class="fa-solid fa-bars text-base"></i>
+            </button>
+            <div class="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                R
+            </div>
+            <h1 class="font-bold text-base sm:text-lg tracking-tight bg-gradient-to-r from-brand-600 to-indigo-600 bg-clip-text text-transparent">Raenotes</h1>
+        </div>
+
+        <!-- Indicatore dello stato di salvataggio automatico -->
+        <div id="statusIndicator" class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 dark:bg-gray-700/50 rounded-full border border-gray-200 dark:border-gray-600">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" id="statusDot"></span>
+            <span id="statusText" class="truncate max-w-[120px] sm:max-w-none">Pronto</span>
+        </div>
+
+        <!-- Azioni principali e cambio tema -->
+        <div class="flex items-center gap-1.5">
+            <button id="btnApriCartella" onclick="connettiCartella()" class="px-2.5 py-1.5 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium flex items-center gap-1.5 shadow-sm transition-all touch-target">
+                <i class="fa-solid fa-folder-open text-xs"></i> 
+                <span class="hidden sm:inline" id="labelCartella">Apri Cartella</span>
+            </button>
+            <button onclick="toggleDarkMode()" class="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-sm transition-colors touch-target flex items-center justify-center" title="Cambia Tema Chiaro/Scuro">
+                <i class="fa-solid fa-sun dark:hidden"></i>
+                <i class="fa-solid fa-moon hidden dark:block"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTAINER PRINCIPALE MULTIDEVICE A 3 PANNELLI -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- OVERLAY MOBILE PER LA SIDEBAR -->
+        <div id="overlayMobile" onclick="toggleSidebarMobile()" class="hidden md:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-30"></div>
+
+        <!-- PANNELLO 1: QUADERNI E TAG (Colonna Sinistra / Slide-out su Mobile) -->
+        <aside id="pannelloQuaderni" class="fixed md:relative inset-y-0 left-0 z-40 md:z-auto w-64 bg-gray-50 dark:bg-gray-800/90 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out">
+            <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Quaderni</span>
+                <button onclick="creaQuaderno()" class="text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 font-medium flex items-center gap-1 p-1">
+                    <i class="fa-solid fa-plus"></i> Nuovo
+                </button>
+            </div>
+            
+            <!-- Lista Quaderni -->
+            <div id="listaQuaderni" class="flex-1 overflow-y-auto p-2 space-y-0.5">
+                <!-- Popolato via JS -->
+            </div>
+
+            <!-- Sezione Tag -->
+            <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Tag</span>
+                    <button id="btnResetTag" onclick="filtraPerTag(null)" class="hidden text-[10px] text-gray-500 hover:underline">Azzera</button>
+                </div>
+                <div id="listaTag" class="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+                    <!-- Popolato via JS -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- PANNELLO 2: ELENCO NOTE (Colonna Centrale / Visibile su Mobile se nessuna nota aperta) -->
+        <section id="pannelloListaNote" class="w-full md:w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shrink-0 z-10 transition-all duration-200">
+            <!-- Barra di Ricerca e Creazione Nota -->
+            <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-2">
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-gray-400"></i>
+                        <input type="text" id="campoRicerca" oninput="filtraNote()" placeholder="Cerca nelle note..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 border-0 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none">
+                    </div>
+                    <button onclick="nuovaNota()" title="Nuova Nota (Ctrl+N)" class="p-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs transition-colors flex items-center justify-center touch-target shrink-0">
+                        <i class="fa-solid fa-pen-to-square text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista delle Note -->
+            <div id="listaNote" class="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/50">
+                <!-- Popolato via JS -->
+            </div>
+        </section>
+
+        <!-- PANNELLO 3: EDITOR / VISUALIZZATORE (Colonna Destra / Visibile a schermo intero su Mobile) -->
+        <main id="pannelloEditor" class="hidden md:flex flex-1 flex-col bg-white dark:bg-gray-900 overflow-hidden w-full absolute md:relative inset-0 z-20 md:z-auto">
+            <!-- Barra degli Strumenti dell'Editor e Formattazione -->
+            <div id="editorToolbar" class="h-12 border-b border-gray-200 dark:border-gray-800 px-2 sm:px-4 flex items-center justify-between shrink-0 bg-gray-50/80 dark:bg-gray-800/50 overflow-x-auto">
+                <div class="flex items-center gap-1 shrink-0">
+                    <!-- Tasto '⬅️ Note' per tornare alla lista su Mobile -->
+                    <button onclick="chiudiNotaMobile()" class="md:hidden px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center gap-1 touch-target mr-1 border border-gray-300 dark:border-gray-600">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Note</span>
+                    </button>
+
+                    <button onclick="setModalitaView('edit')" id="tabEdit" class="px-3 py-1.5 rounded-md text-xs font-medium bg-white dark:bg-gray-700 shadow-xs border border-gray-200 dark:border-gray-600 text-brand-600 dark:text-brand-400 touch-target">
+                        <i class="fa-solid fa-pen mr-1"></i> Editor
+                    </button>
+                    <button onclick="setModalitaView('preview')" id="tabPreview" class="px-3 py-1.5 rounded-md text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white touch-target">
+                        <i class="fa-solid fa-eye mr-1"></i> Vista Pagina
+                    </button>
+                </div>
+
+                <!-- Barra Formattazione Scorrevole -->
+                <div class="flex items-center gap-1 ml-2 overflow-x-auto py-1 shrink-0">
+                    <button onclick="inserisciMarkdown('**', '**')" title="Grassetto" class="p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs touch-target"><i class="fa-solid fa-bold"></i></button>
+                    <button onclick="inserisciMarkdown('*', '*')" title="Corsivo" class="p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs touch-target"><i class="fa-solid fa-italic"></i></button>
+                    <button onclick="inserisciMarkdown('# ', '')" title="Titolo" class="p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs touch-target"><i class="fa-solid fa-heading"></i></button>
+                    <button onclick="inserisciMarkdown('- ', '')" title="Elenco puntato" class="p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-xs touch-target"><i class="fa-solid fa-list-ul"></i></button>
+                    
+                    <div class="h-4 w-px bg-gray-300 dark:bg-gray-700 mx-1"></div>
+
+                    <!-- Tasto carica/scatta foto touch-friendly -->
+                    <label title="Aggiungi Immagine o Scatta Foto" class="cursor-pointer px-2.5 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1 transition-colors touch-target shrink-0">
+                        <i class="fa-solid fa-camera text-brand-500"></i>
+                        <span class="hidden sm:inline">Foto</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="caricaImmagine(event)">
+                    </label>
+
+                    <button onclick="salvaNotaCorrenteManuale()" title="Salva (Ctrl+S)" class="px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg flex items-center gap-1 transition-colors touch-target">
+                        <i class="fa-solid fa-floppy-disk text-emerald-500"></i>
+                        <span class="hidden sm:inline">Salva</span>
+                    </button>
+                    <button onclick="eliminaNotaCorrente()" title="Elimina Nota" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-xs transition-colors touch-target">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Area di Scrittura e Dettaglio Nota -->
+            <div id="contenitoreEditor" class="flex-1 flex flex-col overflow-hidden p-3 sm:p-6 relative">
+                <!-- Titolo e Tag -->
+                <div class="mb-3 flex flex-col gap-2 shrink-0">
+                    <input type="text" id="titoloNota" oninput="gestisciModifica()" placeholder="Titolo della nota..." class="w-full text-xl sm:text-2xl font-bold bg-transparent border-b border-transparent hover:border-gray-200 dark:hover:border-gray-700 focus:border-brand-500 outline-none pb-1 transition-colors">
+                    
+                    <div class="flex items-center gap-2 text-xs">
+                        <i class="fa-solid fa-hashtag text-gray-400"></i>
+                        <input type="text" id="tagNota" oninput="gestisciModifica()" placeholder="Tag separati da virgola (es: lavoro, idee)" class="w-full bg-transparent text-gray-500 dark:text-gray-400 outline-none">
+                    </div>
+                </div>
+
+                <!-- VISTA EDITOR (Scrittura + Riquadro Allegati Separato) -->
+                <div id="vistaEditor" class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Textarea pulita e continua -->
+                    <textarea id="contenutoNota" oninput="gestisciModifica()" placeholder="Inizia a scrivere la tua nota in Markdown..." class="w-full flex-1 bg-transparent resize-none outline-none font-mono text-sm leading-relaxed text-gray-800 dark:text-gray-200 pr-1"></textarea>
+
+                    <!-- SEZIONE ALLEGATI E IMMAGINI PULITA SOTTO LA TEXTAREA -->
+                    <div id="sezioneAllegati" class="hidden shrink-0 mt-3 pt-3 border-t border-gray-200 dark:border-gray-800">
+                        <div class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1.5">
+                            <i class="fa-solid fa-paperclip"></i>
+                            <span>📷 Allegati e Immagini nella nota</span>
+                        </div>
+                        <div id="grigliaAllegati" class="flex flex-wrap gap-2.5 max-h-36 overflow-y-auto p-1">
+                            <!-- Popolato dinamicamente via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VISTA PAGINA (Anteprima Renderizzata) -->
+                <div id="vistaAnteprima" class="hidden flex-1 overflow-y-auto markdown-preview pr-1">
+                    <!-- HTML Renderizzato -->
+                </div>
+            </div>
+
+            <!-- Stato Nessuna Nota Selezionata (Desktop) -->
+            <div id="nessunaNotaSelezionata" class="hidden flex-1 flex flex-col items-center justify-center text-gray-400 dark:text-gray-600 p-4">
+                <i class="fa-regular fa-note-sticky text-5xl mb-3"></i>
+                <p class="text-sm text-center">Seleziona una nota o creane una nuova per iniziare</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL CONFERMA ELIMINAZIONE -->
+    <div id="modalConferma" class="hidden fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-sm w-full p-5 shadow-xl border border-gray-200 dark:border-gray-700">
+            <h3 class="font-bold text-base mb-2" id="modalTitolo">Sei sicuro?</h3>
+            <p class="text-xs text-gray-600 dark:text-gray-300 mb-5" id="modalMessaggio">Questa azione non potrà essere annullata.</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="chiudiModal()" class="px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg touch-target">Annulla</button>
+                <button id="modalBtnConferma" class="px-3 py-2 text-xs bg-red-600 text-white hover:bg-red-700 rounded-lg font-medium touch-target">Elimina</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // ARCHITETTURA DI STATO
+        let stato = {
+            dirHandle: null,            // Handle cartella principale
+            imgDirHandle: null,         // Handle cartella _immagini
+            quaderni: [],               
+            note: [],                   
+            quadernoSelezionato: null,  
+            notaSelezionata: null,      
+            tagSelezionato: null,       
+            modalita: 'edit',           
+            salvataggioTimer: null,      
+            cacheBlobImmagini: {},      
+            isMobileView: window.innerWidth <= 768
+        };
+
+        // INIZIALIZZAZIONE
+        window.addEventListener('DOMContentLoaded', () => {
+            verificaCompatibilita();
+            configuraShortcuts();
+            configuraMarked();
+            caricaNoteDaLocalStorage(); // Ripristina dati o demo se locale
+            impostaTemaIniziale();
+            gestisciResize();
+
+            window.addEventListener('resize', gestisciResize);
+        });
+
+        function gestisciResize() {
+            stato.isMobileView = window.innerWidth <= 768;
+            if (!stato.isMobileView) {
+                document.getElementById('pannelloListaNote').classList.remove('hidden');
+                document.getElementById('pannelloEditor').classList.remove('hidden');
+            } else {
+                if (stato.notaSelezionata) {
+                    mostraEditorMobile();
+                } else {
+                    mostraListaNoteMobile();
+                }
+            }
+        }
+
+        function toggleSidebarMobile() {
+            const sidebar = document.getElementById('pannelloQuaderni');
+            const overlay = document.getElementById('overlayMobile');
+            const aperta = !sidebar.classList.contains('-translate-x-full');
+
+            if (aperta) {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            } else {
+                sidebar.classList.remove('-translate-x-full');
+                overlay.classList.remove('hidden');
+            }
+        }
+
+        function verificaCompatibilita() {
+            if (!('showDirectoryPicker' in window)) {
+                document.getElementById('compatiblityWarning').classList.remove('hidden');
+            }
+        }
+
+        function impostaTemaIniziale() {
+            const temaSalvato = localStorage.getItem('raenotes_theme');
+            if (temaSalvato === 'dark' || (!temaSalvato && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            localStorage.setItem('raenotes_theme', isDark ? 'dark' : 'light');
+        }
+
+        function configuraMarked() {
+            marked.setOptions({ breaks: true, gfm: true });
+        }
+
+        function configuraShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    salvaNotaCorrenteManuale();
+                } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+                    e.preventDefault();
+                    nuovaNota();
+                }
+            });
+        }
+
+        // CARICAMENTO ED INTEGRABILITÀ LOCALSTORAGE / FILE SYSTEM
+        function caricaNoteDaLocalStorage() {
+            const salvati = localStorage.getItem('raenotes_data');
+            if (salvati) {
+                try {
+                    const parsed = JSON.parse(salvati);
+                    stato.quaderni = parsed.quaderni || [];
+                    stato.note = parsed.note || [];
+                } catch(e) {}
+            }
+
+            if (stato.quaderni.length === 0) {
+                stato.quaderni = [{ id: 'radice', nome: 'Note Generali' }];
+            }
+            if (stato.note.length === 0) {
+                stato.note = [{
+                    id: 'demo_1',
+                    nomeFile: 'benvenuto.md',
+                    titolo: '👋 Benvenuto in Raenotes',
+                    tag: ['benvenuto', 'guide'],
+                    contenuto: 'Raenotes è il tuo editor Markdown personalizzato!\n\n- Layout ad una riga pulito per gli allegati.\n- Supporto Dark Mode.\n- Pienamente responsive su smartphone e PC.\n- Autosalvataggio automatico.',
+                    quadernoId: 'radice',
+                    ultimaModifica: Date.now()
+                }];
+            }
+
+            stato.quadernoSelezionato = stato.quaderni[0].id;
+            renderizzaQuaderni();
+            renderizzaTag();
+            renderizzaListaNote();
+        }
+
+        function salvaInLocalStorage() {
+            const payload = {
+                quaderni: stato.quaderni.map(q => ({ id: q.id, nome: q.nome })),
+                note: stato.note.map(n => ({
+                    id: n.id,
+                    nomeFile: n.nomeFile,
+                    titolo: n.titolo,
+                    tag: n.tag,
+                    contenuto: n.contenuto,
+                    quadernoId: n.quadernoId,
+                    ultimaModifica: n.ultimaModifica
+                }))
+            };
+            localStorage.setItem('raenotes_data', JSON.stringify(payload));
+        }
+
+        // ACCESSO A CARTELLA DISC LOCALE (FILE SYSTEM ACCESS API)
+        async function connettiCartella() {
+            try {
+                if (!('showDirectoryPicker' in window)) {
+                    alert("La sincronizzazione da cartella richiede Chrome o Edge. I tuoi dati vengono comunque salvati nella memoria del browser.");
+                    return;
+                }
+                stato.dirHandle = await window.showDirectoryPicker();
+                stato.imgDirHandle = await stato.dirHandle.getDirectoryHandle('_immagini', { create: true });
+                
+                document.getElementById('labelCartella').innerText = stato.dirHandle.name;
+                await caricaStrutturaCartelle();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error("Errore accesso cartella:", err);
+                }
+            }
+        }
+
+        async function caricaStrutturaCartelle() {
+            if (!stato.dirHandle) return;
+
+            stato.quaderni = [{ id: 'radice', nome: 'Note Generali', handle: stato.dirHandle }];
+            stato.note = [];
+
+            for await (const entry of stato.dirHandle.values()) {
+                if (entry.kind === 'directory' && entry.name !== '_immagini' && !entry.name.startsWith('.')) {
+                    stato.quaderni.push({ id: entry.name, nome: entry.name, handle: entry });
+                    await caricaNoteDaCartella(entry, entry.name);
+                } else if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+                    await caricaSingolaNota(entry, 'radice');
+                }
+            }
+
+            stato.quadernoSelezionato = 'radice';
+            renderizzaQuaderni();
+            renderizzaTag();
+            renderizzaListaNote();
+        }
+
+        async function caricaNoteDaCartella(dirHandle, quadernoId) {
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+                    await caricaSingolaNota(entry, quadernoId);
+                }
+            }
+        }
+
+        async function caricaSingolaNota(fileHandle, quadernoId) {
+            const file = await fileHandle.getFile();
+            const testo = await file.text();
+            const meta = estraiMetaEContenuto(testo);
+
+            stato.note.push({
+                id: `${quadernoId}_${fileHandle.name}`,
+                nomeFile: fileHandle.name,
+                titolo: meta.titolo || fileHandle.name.replace('.md', ''),
+                tag: meta.tag || [],
+                contenuto: meta.contenuto,
+                quadernoId: quadernoId,
+                handle: fileHandle,
+                ultimaModifica: file.lastModified
+            });
+        }
+
+        function estraiMetaEContenuto(rawText) {
+            let tag = [];
+            let titolo = '';
+            let contenuto = rawText;
+
+            const righe = rawText.split('\n');
+            let idxInizioContenuto = 0;
+
+            for (let i = 0; i < Math.min(righe.length, 5); i++) {
+                const riga = righe[i].trim();
+                if (riga.startsWith('# ')) {
+                    titolo = riga.replace('# ', '').trim();
+                    idxInizioContenuto = Math.max(idxInizioContenuto, i + 1);
+                } else if (riga.toLowerCase().startsWith('tags:') || riga.toLowerCase().startsWith('tag:')) {
+                    const stringaTag = riga.substring(riga.indexOf(':') + 1);
+                    tag = stringaTag.split(',').map(t => t.trim().replace(/^#/, '')).filter(t => t.length > 0);
+                    idxInizioContenuto = Math.max(idxInizioContenuto, i + 1);
+                }
+            }
+
+            if (idxInizioContenuto > 0 && !titolo) {
+                contenuto = righe.slice(idxInizioContenuto).join('\n').trim();
+            }
+
+            return { titolo, tag, contenuto };
+        }
+
+        function componiTestoDaSalvare(titolo, tag, contenuto) {
+            let output = '';
+            if (titolo) output += `# ${titolo}\n`;
+            if (tag && tag.length > 0) output += `Tags: ${tag.join(', ')}\n`;
+            if (output.length > 0) output += '\n';
+            output += contenuto;
+            return output;
+        }
+
+        // RENDERING INTERFACCIA E QUADERNI
+        function renderizzaQuaderni() {
+            const container = document.getElementById('listaQuaderni');
+            container.innerHTML = '';
+
+            stato.quaderni.forEach(q => {
+                const attivo = q.id === stato.quadernoSelezionato;
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium cursor-pointer transition-colors ${
+                    attivo ? 'bg-brand-50 dark:bg-brand-700/20 text-brand-600 dark:text-brand-400' : 'hover:bg-gray-200/50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+                }`;
+                
+                div.onclick = () => {
+                    stato.quadernoSelezionato = q.id;
+                    renderizzaQuaderni();
+                    renderizzaListaNote();
+                    if (stato.isMobileView) toggleSidebarMobile();
+                };
+
+                const conteggioNote = stato.note.filter(n => n.quadernoId === q.id).length;
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 truncate">
+                        <i class="fa-solid ${q.id === 'radice' ? 'fa-inbox' : 'fa-folder'}"></i>
+                        <span class="truncate">${esc(q.nome)}</span>
+                    </div>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500">${conteggioNote}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderizzaTag() {
+            const container = document.getElementById('listaTag');
+            const btnReset = document.getElementById('btnResetTag');
+            container.innerHTML = '';
+
+            const mappaTag = {};
+            stato.note.forEach(n => {
+                n.tag.forEach(t => {
+                    mappaTag[t] = (mappaTag[t] || 0) + 1;
+                });
+            });
+
+            const tagList = Object.keys(mappaTag);
+            if (tagList.length === 0) {
+                container.innerHTML = '<span class="text-[11px] text-gray-400 font-normal">Nessun tag</span>';
+                btnReset.classList.add('hidden');
+                return;
+            }
+
+            if (stato.tagSelezionato) {
+                btnReset.classList.remove('hidden');
+            } else {
+                btnReset.classList.add('hidden');
+            }
+
+            tagList.forEach(t => {
+                const attivo = stato.tagSelezionato === t;
+                const badge = document.createElement('button');
+                badge.className = `text-[11px] px-2 py-0.5 rounded-full border transition-colors flex items-center gap-1 ${
+                    attivo 
+                    ? 'bg-brand-600 text-white border-brand-600' 
+                    : 'bg-gray-100 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-400'
+                }`;
+                badge.onclick = () => filtraPerTag(attivo ? null : t);
+                badge.innerHTML = `#${esc(t)} <span class="opacity-70 text-[9px]">(${mappaTag[t]})</span>`;
+                container.appendChild(badge);
+            });
+        }
+
+        function renderizzaListaNote() {
+            const container = document.getElementById('listaNote');
+            const queryRicerca = document.getElementById('campoRicerca').value.toLowerCase();
+            container.innerHTML = '';
+
+            let noteFiltrate = stato.note.filter(n => {
+                const corrispondeQuaderno = stato.quadernoSelezionato ? n.quadernoId === stato.quadernoSelezionato : true;
+                const corrispondeTag = stato.tagSelezionato ? n.tag.includes(stato.tagSelezionato) : true;
+                const corrispondeRicerca = queryRicerca === '' || 
+                    n.titolo.toLowerCase().includes(queryRicerca) || 
+                    n.contenuto.toLowerCase().includes(queryRicerca);
+                return corrispondeQuaderno && corrispondeTag && corrispondeRicerca;
+            });
+
+            noteFiltrate.sort((a, b) => b.ultimaModifica - a.ultimaModifica);
+
+            if (noteFiltrate.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-gray-400">Nessuna nota trovata</div>`;
+                return;
+            }
+
+            noteFiltrate.forEach(n => {
+                const attiva = stato.notaSelezionata && stato.notaSelezionata.id === n.id;
+                const div = document.createElement('div');
+                div.className = `p-3 cursor-pointer transition-colors ${
+                    attiva ? 'bg-brand-50/70 dark:bg-brand-950/40 border-l-4 border-brand-600' : 'hover:bg-gray-50 dark:hover:bg-gray-700/30'
+                }`;
+                div.onclick = () => selezionaNota(n);
+
+                const estratto = n.contenuto.replace(/[#*`_]/g, '').slice(0, 60) || 'Nota vuota...';
+
+                div.innerHTML = `
+                    <div class="font-medium text-xs text-gray-900 dark:text-gray-100 truncate mb-1">${esc(n.titolo || 'Senza Titolo')}</div>
+                    <div class="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 mb-1.5 leading-relaxed">${esc(estratto)}</div>
+                    <div class="flex items-center justify-between text-[10px] text-gray-400">
+                        <span>${formattadata(n.ultimaModifica)}</span>
+                        ${n.tag.length > 0 ? `<span class="truncate max-w-[100px] text-brand-600 dark:text-brand-400 font-medium">#${esc(n.tag[0])}</span>` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // SELEZIONE NOTA E NAVIGAZIONE MOBILE
+        async function selezionaNota(nota) {
+            stato.notaSelezionata = nota;
+            renderizzaListaNote();
+
+            document.getElementById('nessunaNotaSelezionata').classList.add('hidden');
+            document.getElementById('contenitoreEditor').classList.remove('hidden');
+            document.getElementById('editorToolbar').classList.remove('hidden');
+
+            document.getElementById('titoloNota').value = nota.titolo;
+            document.getElementById('tagNota').value = nota.tag.join(', ');
+            document.getElementById('contenutoNota').value = nota.contenuto;
+
+            if (stato.isMobileView) {
+                mostraEditorMobile();
+            }
+
+            await aggiornaAllegatiEAnteprima();
+        }
+
+        function mostraEditorMobile() {
+            document.getElementById('pannelloListaNote').classList.add('hidden');
+            document.getElementById('pannelloEditor').classList.remove('hidden');
+        }
+
+        function chiudiNotaMobile() {
+            mostraListaNoteMobile();
+        }
+
+        function mostraListaNoteMobile() {
+            document.getElementById('pannelloEditor').classList.add('hidden');
+            document.getElementById('pannelloListaNote').classList.remove('hidden');
+        }
+
+        function filtraNote() {
+            renderizzaListaNote();
+        }
+
+        function filtraPerTag(tag) {
+            stato.tagSelezionato = tag;
+            renderizzaTag();
+            renderizzaListaNote();
+        }
+
+        // NUOVA NOTA & QUADERNO
+        async function nuovaNota() {
+            const titolo = "Nuova Nota";
+            const nomeFile = `nota_${Date.now()}.md`;
+            const quadernoId = stato.quadernoSelezionato || 'radice';
+
+            let handle = null;
+            if (stato.dirHandle) {
+                try {
+                    const qObj = stato.quaderni.find(q => q.id === quadernoId);
+                    const dir = qObj && qObj.handle ? qObj.handle : stato.dirHandle;
+                    handle = await dir.getFileHandle(nomeFile, { create: true });
+                } catch (e) {}
+            }
+
+            const nuova = {
+                id: `${quadernoId}_${nomeFile}`,
+                nomeFile: nomeFile,
+                titolo: titolo,
+                tag: [],
+                contenuto: "",
+                quadernoId: quadernoId,
+                handle: handle,
+                ultimaModifica: Date.now()
+            };
+
+            stato.note.push(nuova);
+            renderizzaQuaderni();
+            renderizzaTag();
+            selezionaNota(nuova);
+            salvaNotaCorrente();
+        }
+
+        async function creaQuaderno() {
+            const nome = prompt("Nome del nuovo Quaderno:");
+            if (!nome || nome.trim() === '') return;
+
+            const nomePulito = nome.trim();
+            if (stato.quaderni.some(q => q.nome.toLowerCase() === nomePulito.toLowerCase())) {
+                alert("Un quaderno con questo nome esiste già.");
+                return;
+            }
+
+            let handle = null;
+            if (stato.dirHandle) {
+                try {
+                    handle = await stato.dirHandle.getDirectoryHandle(nomePulito, { create: true });
+                } catch (e) {}
+            }
+
+            const nuovo = { id: nomePulito, nome: nomePulito, handle: handle };
+            stato.quaderni.push(nuovo);
+            stato.quadernoSelezionato = nuovo.id;
+            renderizzaQuaderni();
+            renderizzaListaNote();
+            salvaInLocalStorage();
+        }
+
+        // FORMATTAZIONE AUTOMATICA MARKDOWN
+        function inserisciMarkdown(prefisso, suffisso) {
+            const textarea = document.getElementById('contenutoNota');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const testoSelezionato = textarea.value.substring(start, end);
+
+            const sostituzione = prefisso + testoSelezionato + suffisso;
+            textarea.value = textarea.value.substring(0, start) + sostituzione + textarea.value.substring(end);
+            
+            textarea.focus();
+            textarea.selectionStart = start + prefisso.length;
+            textarea.selectionEnd = end + prefisso.length;
+
+            gestisciModifica();
+        }
+
+        // AUTOSALVATAGGIO (DEBOUNCE 1.5s)
+        function gestisciModifica() {
+            if (!stato.notaSelezionata) return;
+
+            stato.notaSelezionata.titolo = document.getElementById('titoloNota').value;
+            stato.notaSelezionata.tag = document.getElementById('tagNota').value
+                .split(',')
+                .map(t => t.trim().replace(/^#/, ''))
+                .filter(t => t.length > 0);
+            stato.notaSelezionata.contenuto = document.getElementById('contenutoNota').value;
+            stato.notaSelezionata.ultimaModifica = Date.now();
+
+            aggiornaStatoSalvataggio('✏️ Modifiche...', 'amber');
+            aggiornaAllegatiEAnteprima();
+
+            clearTimeout(stato.salvataggioTimer);
+            stato.salvataggioTimer = setTimeout(() => {
+                salvaNotaCorrente();
+            }, 1500);
+        }
+
+        async function salvaNotaCorrente() {
+            if (!stato.notaSelezionata) return;
+            aggiornaStatoSalvataggio('Salvataggio...', 'blue');
+
+            const testoCompleto = componiTestoDaSalvare(
+                stato.notaSelezionata.titolo,
+                stato.notaSelezionata.tag,
+                stato.notaSelezionata.contenuto
+            );
+
+            if (stato.notaSelezionata.handle) {
+                try {
+                    const writable = await stato.notaSelezionata.handle.createWritable();
+                    await writable.write(testoCompleto);
+                    await writable.close();
+                } catch (e) {}
+            }
+
+            salvaInLocalStorage();
+            aggiornaStatoSalvataggio('✅ Salvato', 'emerald');
+            renderizzaListaNote();
+            renderizzaTag();
+        }
+
+        function salvaNotaCorrenteManuale() {
+            clearTimeout(stato.salvataggioTimer);
+            salvaNotaCorrente();
+        }
+
+        function aggiornaStatoSalvataggio(messaggio, colore) {
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            txt.innerText = messaggio;
+
+            dot.className = "w-2 h-2 rounded-full shrink-0 ";
+            if (colore === 'emerald') dot.classList.add('bg-emerald-500');
+            else if (colore === 'amber') dot.classList.add('bg-amber-500');
+            else if (colore === 'blue') dot.classList.add('bg-blue-500');
+        }
+
+        // CARICAMENTO ED ELABORAZIONE FOTO/ALLEGATI
+        async function caricaImmagine(event) {
+            const file = event.target.files[0];
+            if (!file || !stato.notaSelezionata) return;
+
+            const estensione = file.name.split('.').pop() || 'png';
+            const nomeUnivoco = `img_${Date.now()}.${estensione}`;
+
+            if (stato.imgDirHandle) {
+                try {
+                    const imgHandle = await stato.imgDirHandle.getFileHandle(nomeUnivoco, { create: true });
+                    const writable = await imgHandle.createWritable();
+                    await writable.write(file);
+                    await writable.close();
+                } catch (e) {}
+            }
+
+            const objectUrl = URL.createObjectURL(file);
+            stato.cacheBlobImmagini[nomeUnivoco] = objectUrl;
+
+            const markdownImg = `\n![${file.name}](_immagini/${nomeUnivoco})\n`;
+            const textarea = document.getElementById('contenutoNota');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+
+            textarea.value = textarea.value.substring(0, start) + markdownImg + textarea.value.substring(end);
+            textarea.focus();
+            textarea.selectionEnd = start + markdownImg.length;
+
+            gestisciModifica();
+            event.target.value = '';
+        }
+
+        async function aggiornaAllegatiEAnteprima() {
+            if (!stato.notaSelezionata) return;
+
+            const testo = document.getElementById('contenutoNota').value;
+            const regexImg = /!\[(.*?)\]\((.*?)\)/g;
+            const corrispondenze = [...testo.matchAll(regexImg)];
+
+            const sezioneAllegati = document.getElementById('sezioneAllegati');
+            const griglia = document.getElementById('grigliaAllegati');
+
+            if (corrispondenze.length === 0) {
+                sezioneAllegati.classList.add('hidden');
+                griglia.innerHTML = '';
+            } else {
+                sezioneAllegati.classList.remove('hidden');
+                griglia.innerHTML = '';
+
+                for (const m of corrispondenze) {
+                    const altText = m[1] || 'Immagine';
+                    const src = m[2];
+                    const nomeFile = src.replace('_immagini/', '');
+
+                    let urlSrc = src;
+                    if (src.startsWith('_immagini/')) {
+                        if (stato.cacheBlobImmagini[nomeFile]) {
+                            urlSrc = stato.cacheBlobImmagini[nomeFile];
+                        } else if (stato.imgDirHandle) {
+                            try {
+                                const h = await stato.imgDirHandle.getFileHandle(nomeFile);
+                                const f = await h.getFile();
+                                urlSrc = URL.createObjectURL(f);
+                                stato.cacheBlobImmagini[nomeFile] = urlSrc;
+                            } catch (e) {}
+                        }
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = "group relative w-24 h-24 sm:w-28 sm:h-28 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex flex-col shadow-xs shrink-0";
+                    card.innerHTML = `
+                        <img src="${urlSrc}" alt="${esc(altText)}" class="w-full h-16 sm:h-20 object-cover" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e2e8f0/64748b?text=Foto';">
+                        <div class="flex-1 px-1.5 py-0.5 text-[10px] truncate text-gray-600 dark:text-gray-300 bg-white dark:bg-gray-800 flex items-center justify-between">
+                            <span class="truncate" title="${esc(nomeFile)}">${esc(nomeFile)}</span>
+                        </div>
+                        <button onclick="rimuoviRiferimentoImmagine('${esc(src)}')" title="Rimuovi dalla nota" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow opacity-90">
+                            &times;
+                        </button>
+                    `;
+                    griglia.appendChild(card);
+                }
+            }
+
+            if (stato.modalita === 'preview') {
+                renderizzaAnteprimaMarkdown();
+            }
+        }
+
+        function rimuoviRiferimentoImmagine(srcImmagine) {
+            const textarea = document.getElementById('contenutoNota');
+            let testo = textarea.value;
+
+            const regex = new RegExp(`\\!\\[.*?\\]\\(${srcImmagine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)\\n?`, 'g');
+            textarea.value = testo.replace(regex, '');
+
+            gestisciModifica();
+        }
+
+        // MODALITÀ VISTA PAGINA / EDIT
+        function setModalitaView(mode) {
+            stato.modalita = mode;
+            const btnEdit = document.getElementById('tabEdit');
+            const btnPreview = document.getElementById('tabPreview');
+            const vistaEdit = document.getElementById('vistaEditor');
+            const vistaPrev = document.getElementById('vistaAnteprima');
+
+            if (mode === 'edit') {
+                vistaEdit.classList.remove('hidden');
+                vistaPrev.classList.add('hidden');
+
+                btnEdit.className = "px-3 py-1.5 rounded-md text-xs font-medium bg-white dark:bg-gray-700 shadow-xs border border-gray-200 dark:border-gray-600 text-brand-600 dark:text-brand-400 touch-target";
+                btnPreview.className = "px-3 py-1.5 rounded-md text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white touch-target";
+            } else {
+                vistaEdit.classList.add('hidden');
+                vistaPrev.classList.remove('hidden');
+
+                btnPreview.className = "px-3 py-1.5 rounded-md text-xs font-medium bg-white dark:bg-gray-700 shadow-xs border border-gray-200 dark:border-gray-600 text-brand-600 dark:text-brand-400 touch-target";
+                btnEdit.className = "px-3 py-1.5 rounded-md text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white touch-target";
+
+                renderizzaAnteprimaMarkdown();
+            }
+        }
+
+        async function renderizzaAnteprimaMarkdown() {
+            if (!stato.notaSelezionata) return;
+
+            let mdText = stato.notaSelezionata.contenuto;
+
+            mdText = mdText.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
+                if (src.startsWith('_immagini/')) {
+                    const fileKey = src.replace('_immagini/', '');
+                    if (stato.cacheBlobImmagini[fileKey]) {
+                        return `![${alt}](${stato.cacheBlobImmagini[fileKey]})`;
+                    }
+                }
+                return match;
+            });
+
+            const html = marked.parse(mdText);
+            document.getElementById('vistaAnteprima').innerHTML = html;
+        }
+
+        // ELIMINAZIONE NOTA
+        function eliminaNotaCorrente() {
+            if (!stato.notaSelezionata) return;
+
+            mostraModal(
+                "Elimina Nota",
+                `Sei sicuro di voler eliminare "${stato.notaSelezionata.titolo}"?`,
+                async () => {
+                    if (stato.notaSelezionata.handle) {
+                        try {
+                            const qObj = stato.quaderni.find(q => q.id === stato.notaSelezionata.quadernoId);
+                            const dir = qObj && qObj.handle ? qObj.handle : stato.dirHandle;
+                            if (dir) {
+                                await dir.removeEntry(stato.notaSelezionata.nomeFile);
+                            }
+                        } catch (e) {}
+                    }
+
+                    stato.note = stato.note.filter(n => n.id !== stato.notaSelezionata.id);
+                    stato.notaSelezionata = null;
+
+                    salvaInLocalStorage();
+
+                    if (stato.isMobileView) {
+                        mostraListaNoteMobile();
+                    } else {
+                        document.getElementById('contenitoreEditor').classList.add('hidden');
+                        document.getElementById('editorToolbar').classList.add('hidden');
+                        document.getElementById('nessunaNotaSelezionata').classList.remove('hidden');
+                    }
+
+                    renderizzaListaNote();
+                    renderizzaTag();
+                    chiudiModal();
+                }
+            );
+        }
+
+        // MODAL UTILITY
+        function mostraModal(titolo, messaggio, onConferma) {
+            document.getElementById('modalTitolo').innerText = titolo;
+            document.getElementById('modalMessaggio').innerText = messaggio;
+            const btnConferma = document.getElementById('modalBtnConferma');
+
+            btnConferma.onclick = onConferma;
+            document.getElementById('modalConferma').classList.remove('hidden');
+        }
+
+        function chiudiModal() {
+            document.getElementById('modalConferma').classList.add('hidden');
+        }
+
+        // UTILITY DI FORMATTAZIONE
+        function esc(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        function formattadata(timestamp) {
+            if (!timestamp) return '';
+            const d = new Date(timestamp);
+            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+        }
+    </script>
+</body>
+</html>
